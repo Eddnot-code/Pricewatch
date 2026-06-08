@@ -1,0 +1,107 @@
+[
+  {
+    "type": "expensive",
+    "severity": "high",
+    "product": "VIOLAO TAKAMINE GD-14 FOLK",
+    "sku": "1662296",
+    "my_price": 3700.0,
+    "min_price": 2704.25,
+    "diff_pct": 36.8,
+    "cheaper_stores": [
+      {
+        "competitor": "Guarani Musical",
+        "price": 2704.25,
+        "url": "https://www.guaranimusical.com.br/instrumentos-musicais/violao-folk-takamine-gd11mce-mahogany",
+        "local": false,
+        "score": 0.5
+      },
+      {
+        "competitor": "ShopMusic",
+        "price": 3289.7,
+        "url": "https://www.shopmusiconline.com.br/violao-takamine-gd11mce-ns-aco-mogno-fosco",
+        "local": true,
+        "score": 0.5
+      }
+    ],
+    "has_local_cheaper": true,
+    "message": "🔴 ALERTA — PriceWatch\nMusical Presentes · 08/06/2026 11:48\n\n📦 VIOLAO TAKAMINE GD-14 FOLK\n━━━━━━━━━━━━━━━━━━━━\nSeu preco:  R$ 3,700.00\nMais barato: R$ 2,704.25 (+36.8%)\n\n  • Guarani Musical: R$ 2,704.25\n  • ShopMusic: R$ 3,289.70 📍LOCAL\n\n⚠️ Concorrente LOCAL mais barato!\n━━━━━━━━━━━━━━━━━━━━\nmusicalpresentesonline.com.br",
+    "timestamp": "2026-06-08T11:48:59.172280"
+  },
+  {
+    "type": "expensive",
+    "severity": "high",
+    "product": "VIOLAO TAKAMINE GD93 CE",
+    "sku": "164146",
+    "my_price": 7390.0,
+    "min_price": 2704.25,
+    "diff_pct": 173.3,
+    "cheaper_stores": [
+      {
+        "competitor": "Guarani Musical",
+        "price": 2704.25,
+        "url": "https://www.guaranimusical.com.br/instrumentos-musicais/violao-folk-takamine-gd11mce-mahogany",
+        "local": false,
+        "score": 0.5
+      },
+      {
+        "competitor": "ShopMusic",
+        "price": 3289.7,
+        "url": "https://www.shopmusiconline.com.br/violao-takamine-gd11mce-ns-aco-mogno-fosco",
+        "local": true,
+        "score": 0.5
+      }
+    ],
+    "has_local_cheaper": true,
+    "message": "🔴 ALERTA — PriceWatch\nMusical Presentes · 08/06/2026 11:48\n\n📦 VIOLAO TAKAMINE GD93 CE\n━━━━━━━━━━━━━━━━━━━━\nSeu preco:  R$ 7,390.00\nMais barato: R$ 2,704.25 (+173.3%)\n\n  • Guarani Musical: R$ 2,704.25\n  • ShopMusic: R$ 3,289.70 📍LOCAL\n\n⚠️ Concorrente LOCAL mais barato!\n━━━━━━━━━━━━━━━━━━━━\nmusicalpresentesonline.com.br",
+    "timestamp": "2026-06-08T11:48:59.172443"
+  },
+  {
+    "type": "expensive",
+    "severity": "high",
+    "product": "VIOLAO TAKAMINE GD71",
+    "sku": "1661116",
+    "my_price": 6650.0,
+    "min_price": 2704.25,
+    "diff_pct": 145.9,
+    "cheaper_stores": [
+      {
+        "competitor": "Guarani Musical",
+        "price": 2704.25,
+        "url": "https://www.guaranimusical.com.br/instrumentos-musicais/violao-folk-takamine-gd11mce-mahogany",
+        "local": false,
+        "score": 0.5
+      },
+      {
+        "competitor": "ShopMusic",
+        "price": 3289.7,
+        "url": "https://www.shopmusiconline.com.br/violao-takamine-gd11mce-ns-aco-mogno-fosco",
+        "local": true,
+        "score": 0.5
+      }
+    ],
+    "has_local_cheaper": true,
+    "message": "🔴 ALERTA — PriceWatch\nMusical Presentes · 08/06/2026 11:48\n\n📦 VIOLAO TAKAMINE GD71\n━━━━━━━━━━━━━━━━━━━━\nSeu preco:  R$ 6,650.00\nMais barato: R$ 2,704.25 (+145.9%)\n\n  • Guarani Musical: R$ 2,704.25\n  • ShopMusic: R$ 3,289.70 📍LOCAL\n\n⚠️ Concorrente LOCAL mais barato!\n━━━━━━━━━━━━━━━━━━━━\nmusicalpresentesonline.com.br",
+    "timestamp": "2026-06-08T11:48:59.175619"
+  },
+  {
+    "type": "expensive",
+    "severity": "medium",
+    "product": "VIOLAO TAKAMINE GN-11",
+    "sku": "1660587",
+    "my_price": 3230.0,
+    "min_price": 2704.25,
+    "diff_pct": 19.4,
+    "cheaper_stores": [
+      {
+        "competitor": "Guarani Musical",
+        "price": 2704.25,
+        "url": "https://www.guaranimusical.com.br/instrumentos-musicais/violao-folk-takamine-gd11mce-mahogany",
+        "local": false,
+        "score": 0.6666666666666666
+      }
+    ],
+    "has_local_cheaper": false,
+    "message": "🔴 ALERTA — PriceWatch\nMusical Presentes · 08/06/2026 11:48\n\n📦 VIOLAO TAKAMINE GN-11\n━━━━━━━━━━━━━━━━━━━━\nSeu preco:  R$ 3,230.00\nMais barato: R$ 2,704.25 (+19.4%)\n\n  • Guarani Musical: R$ 2,704.25\n━━━━━━━━━━━━━━━━━━━━\nmusicalpresentesonline.com.br",
+    "timestamp": "2026-06-08T11:48:59.175739"
+  }
+]
