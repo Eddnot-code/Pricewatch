@@ -6,7 +6,7 @@ Musical Presentes - musicalpresentesonline.com.br
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import json, os, threading, time
-from datetime import datetime
+from datetime import datetime, timedelta
 from scraper import CompetitorScraper
 from loja_integrada import LojaIntegradaAPI
 from telegram_alerter import TelegramAlerter
@@ -15,8 +15,13 @@ from analyzer import PriceAnalyzer
 app = Flask(__name__)
 CORS(app)
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), '..', 'config', 'config.json')
-DATA_PATH   = os.path.join(os.path.dirname(__file__), '..', 'data')
+BASE_DIR    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CONFIG_PATH = os.path.join(BASE_DIR, 'config', 'config.json')
+DATA_PATH   = os.path.join(BASE_DIR, 'data')
+
+SCRAPE_INTERVAL_HOURS = 6
+_scrape_lock = threading.Lock()
+_is_scraping = False
 
 def load_config():
     with open(CONFIG_PATH, encoding='utf-8') as f:
@@ -35,7 +40,7 @@ def load_data(filename):
         return json.load(f)
 
 def run_scrape_and_alert():
-    """Executa scraping + analise + alertas em background"""
+    global _is_scraping
     try:
         cfg     = load_config()
         scraper = CompetitorScraper(cfg['competitors'])
@@ -44,57 +49,86 @@ def run_scrape_and_alert():
 
         products = load_data('products.json')
         if not products:
-            print("[scheduler] Nenhum produto carregado — execute /api/products primeiro")
-            return 0
+            print("[scheduler] Nenhum produto — carregando da API...")
+            api = LojaIntegradaAPI(
+                cfg['loja_integrada']['chave_api'],
+                cfg['loja_integrada']['chave_aplicacao']
+            )
+            products = api.get_products()
+            save_data('products.json', products)
 
         analyzer = PriceAnalyzer()
         alerts   = analyzer.generate_alerts(products, results, cfg['alert_thresholds'])
         save_data('alerts.json', alerts)
+        save_data('last_run.json', {'timestamp': datetime.now().isoformat(), 'alerts': len(alerts)})
 
         if alerts and cfg['telegram']['enabled']:
-            tg = TelegramAlerter(cfg['telegram'])
+            tg   = TelegramAlerter(cfg['telegram'])
             sent = tg.send_alerts(alerts)
-            print(f"[scheduler] {len(alerts)} alertas gerados, {sent} enviados no Telegram")
-
-            # Relatorio diario as 9h
+            print(f"[{datetime.now()}] {len(alerts)} alertas, {sent} enviados no Telegram")
             if datetime.now().hour == 9:
                 comparison = analyzer.compare(products, results)
                 tg.send_daily_report(comparison)
         else:
-            print(f"[scheduler] Scraping OK — {len(results)} lojas, {len(alerts)} alertas")
+            print(f"[{datetime.now()}] Scraping OK — {len(alerts)} alertas")
 
         return len(alerts)
     except Exception as e:
-        print(f"[scheduler] Erro: {e}")
+        print(f"[{datetime.now()}] Erro: {e}")
         import traceback; traceback.print_exc()
         return 0
+    finally:
+        _is_scraping = False
+
+def maybe_run_scrape(force=False):
+    global _is_scraping
+    last_run = load_data('last_run.json') or {}
+    last_ts  = last_run.get('timestamp')
+    should_run = force
+    if not should_run:
+        if not last_ts:
+            should_run = True
+        else:
+            last_dt = datetime.fromisoformat(last_ts)
+            if datetime.now() - last_dt >= timedelta(hours=SCRAPE_INTERVAL_HOURS):
+                should_run = True
+    if should_run and not _is_scraping:
+        with _scrape_lock:
+            if _is_scraping:
+                return False
+            _is_scraping = True
+        t = threading.Thread(target=run_scrape_and_alert, daemon=True)
+        t.start()
+        return True
+    return False
+
+@app.route('/')
+def home():
+    return jsonify({'app': 'PriceWatch — Musical Presentes', 'status': 'online', 'time': datetime.now().isoformat()})
 
 @app.route('/api/status')
 def status():
-    products = load_data('products.json')
+    products    = load_data('products.json')
     competitors = load_data('competitors.json')
-    alerts = load_data('alerts.json') or []
+    alerts      = load_data('alerts.json') or []
+    last_run    = load_data('last_run.json') or {}
     return jsonify({
-        'status': 'ok',
-        'timestamp': datetime.now().isoformat(),
-        'products_loaded': len(products) if isinstance(products, list) else 0,
+        'status':              'ok',
+        'timestamp':           datetime.now().isoformat(),
+        'products_loaded':     len(products) if isinstance(products, list) else 0,
         'competitors_scraped': len(competitors),
-        'alerts': len(alerts),
+        'alerts':              len(alerts),
+        'last_run':            last_run,
+        'is_scraping':         _is_scraping,
     })
 
 @app.route('/api/products')
 def get_products():
     cfg = load_config()
-    if not cfg['loja_integrada'].get('chave_aplicacao') or \
-       cfg['loja_integrada']['chave_aplicacao'] == 'COLE_AQUI_QUANDO_CHEGAR_O_EMAIL':
-        return jsonify({'error': 'Chave de aplicacao nao configurada'}), 400
-    api = LojaIntegradaAPI(
-        cfg['loja_integrada']['chave_api'],
-        cfg['loja_integrada']['chave_aplicacao']
-    )
+    api = LojaIntegradaAPI(cfg['loja_integrada']['chave_api'], cfg['loja_integrada']['chave_aplicacao'])
     products = api.get_products()
     save_data('products.json', products)
-    return jsonify({'loaded': len(products), 'products': products[:5]})
+    return jsonify({'loaded': len(products)})
 
 @app.route('/api/competitors')
 def get_competitors():
@@ -107,8 +141,7 @@ def get_comparison():
     if not products or not competitors:
         return jsonify([])
     analyzer = PriceAnalyzer()
-    result   = analyzer.compare(products, competitors)
-    return jsonify(result)
+    return jsonify(analyzer.compare(products, competitors))
 
 @app.route('/api/alerts')
 def get_alerts():
@@ -116,57 +149,40 @@ def get_alerts():
 
 @app.route('/api/scrape', methods=['POST'])
 def trigger_scrape():
-    """Dispara scraping em background e retorna imediatamente"""
-    def run():
-        run_scrape_and_alert()
-    t = threading.Thread(target=run, daemon=True)
-    t.start()
-    return jsonify({
-        'status': 'iniciado',
-        'message': 'Scraping iniciado em background. Aguarde ~2 minutos e consulte /api/alerts',
-        'timestamp': datetime.now().isoformat()
-    })
+    started = maybe_run_scrape(force=True)
+    return jsonify({'status': 'iniciado' if started else 'ja_em_andamento', 'timestamp': datetime.now().isoformat()})
 
 @app.route('/api/scrape/sync', methods=['POST'])
 def trigger_scrape_sync():
-    """Dispara scraping sincronamente e aguarda resultado"""
+    global _is_scraping
+    _is_scraping = False
     n = run_scrape_and_alert()
     alerts = load_data('alerts.json') or []
     return jsonify({'scraped': 7, 'alerts': n, 'timestamp': datetime.now().isoformat()})
 
-@app.route('/api/telegram/test', methods=['POST'])
+@app.route('/api/cron', methods=['GET', 'POST', 'HEAD'])
+def cron_endpoint():
+    """Endpoint para UptimeRobot — aceita GET, dispara scraping a cada 6h automaticamente"""
+    started  = maybe_run_scrape(force=False)
+    last_run = load_data('last_run.json') or {}
+    return jsonify({'status': 'ok', 'scrape_started': started, 'last_run': last_run, 'timestamp': datetime.now().isoformat()})
+
+@app.route('/api/telegram/test', methods=['POST', 'GET'])
 def test_telegram():
     cfg = load_config()
     tg  = TelegramAlerter(cfg['telegram'])
     tg.enabled = True
-    ok = tg.broadcast(
-        "✅ PriceWatch funcionando!\n"
-        "Musical Presentes · Ipatinga, MG\n\n"
-        "Sistema de alertas ativo."
-    )
+    ok = tg.broadcast("✅ PriceWatch online na nuvem!\nMusical Presentes · Ipatinga, MG\n\nSistema rodando 24h no Railway.\nAlertas automaticos a cada 6 horas.")
     return jsonify({'sent': ok > 0})
 
 @app.route('/api/update-price', methods=['POST'])
 def update_price():
     body = request.json
     cfg  = load_config()
-    api  = LojaIntegradaAPI(
-        cfg['loja_integrada']['chave_api'],
-        cfg['loja_integrada']['chave_aplicacao']
-    )
-    result = api.update_price(body['product_id'], body['new_price'])
-    return jsonify(result)
-
-def scheduler():
-    """Roda scraping a cada 6 horas"""
-    time.sleep(30)  # aguarda 30s antes do primeiro ciclo
-    while True:
-        print(f"[{datetime.now()}] Iniciando varredura automatica...")
-        run_scrape_and_alert()
-        time.sleep(6 * 3600)
+    api  = LojaIntegradaAPI(cfg['loja_integrada']['chave_api'], cfg['loja_integrada']['chave_aplicacao'])
+    return jsonify(api.update_price(body['product_id'], body['new_price']))
 
 if __name__ == '__main__':
-    t = threading.Thread(target=scheduler, daemon=True)
-    t.start()
-    print("PriceWatch iniciado — http://127.0.0.1:5000")
-    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+    port = int(os.environ.get('PORT', 5000))
+    print(f"PriceWatch iniciado — porta {port}")
+    app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
